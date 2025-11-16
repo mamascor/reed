@@ -1,0 +1,37 @@
+{
+  "job_number": "26046",
+  "last_updated": "2025-11-16 17:15:27",
+  "total_samples": 3,
+  "samples": [
+    {
+      "job_number": "26046",
+      "boring_number": "B-12",
+      "depth": "1.5 - 3",
+      "can_number": "215",
+      "can_weight": "35.2",
+      "wet_weight": "208.2",
+      "suction_can_no": "123",
+      "timestamp": "2025-11-16 17:12:45"
+    },
+    {
+      "job_number": "26046",
+      "boring_number": "B-12",
+      "depth": "3 - 4.5",
+      "can_number": "123",
+      "can_weight": "35.5",
+      "wet_weight": "205.5",
+      "suction_can_no": "123",
+      "timestamp": "2025-11-16 17:14:42"
+    },
+    {
+      "job_number": "26046",
+      "boring_number": "B-12",
+      "depth": "4.5 - 6",
+      "can_number": "123",
+      "can_weight": "58.2",
+      "wet_weight": "123.2",
+      "suction_can_no": "123",
+      "timestamp": "2025-11-16 17:15:27"
+    }
+  ]
+}

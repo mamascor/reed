@@ -1,0 +1,17 @@
+# Logs
+logs/
+*.log
+
+# Binaries
+lms-tui
+lms
+
+# Go build artifacts
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test coverage
+*.out

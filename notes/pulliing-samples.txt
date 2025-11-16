@@ -1,0 +1,14 @@
+this is how pulling samples go
+
+whenever you are pullling a sample you get a test request form this test request form will tell you what kinds of test you should
+go ahead and start pulling,
+
+the only two test that require a can are the suctions and the noistures,
+
+moistures require that you get the can number as well as the can weight, after you put the sample into the can then you are require to put the can weight with the sample, we call this the wet weight 
+so at first you will require those 3 fields 
+
+suctions work a little different, they do not require that you get the weight, you only require that you get the can number,
+
+
+so whenever the person pulling they only need to get 4 values in total.
