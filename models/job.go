@@ -4,7 +4,9 @@ import "time"
 
 // Job represents a job/project in the LMS system
 type Job struct {
-	ProjectNumber    string
+	ProjectNumber    string    // Display number (e.g., "25490" or "25490_03")
+	BaseJobNumber    string    // Base job number without suffix (e.g., "25490")
+	LabFilePath      string    // Full path to the Lab file being used
 	ProjectName      string
 	EngineerInitials string
 	DateAssigned     time.Time

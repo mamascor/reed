@@ -3,8 +3,10 @@ package pkg
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -35,7 +37,13 @@ type SampleData struct {
 
 // ExcelToJSON converts Excel data to JSON format and logs it
 func ExcelToJSON(filePath string) (*JobData, error) {
-	f, err := excelize.OpenFile(GetProjectPath(filePath))
+	// Handle both absolute and relative paths
+	fullPath := filePath
+	if !filepath.IsAbs(filePath) {
+		fullPath = GetProjectPath(filePath)
+	}
+
+	f, err := excelize.OpenFile(fullPath)
 	if err != nil {
 		logger.Error.Printf("Failed to open Excel file for JSON conversion: %v", err)
 		return nil, err
@@ -131,20 +139,51 @@ func ExcelToJSON(filePath string) (*JobData, error) {
 		}
 	}
 
-	// Convert to JSON and log
-	jsonBytes, err := json.MarshalIndent(jobData, "", "  ")
-	if err != nil {
-		logger.Error.Printf("Failed to convert to JSON: %v", err)
-		return nil, err
+	// Validate Excel data before returning
+	if err := validateJobData(jobData); err != nil {
+		logger.Error.Printf("Excel data validation failed: %v", err)
+		return nil, fmt.Errorf("Excel file validation failed: %v", err)
 	}
 
-	logger.Info.Printf("Excel data converted to JSON:\n%s", string(jsonBytes))
+	logger.Info.Printf("Excel data loaded and validated: Job %s with %d samples", jobData.JobNumber, len(jobData.Samples))
 
 	return jobData, nil
 }
 
+// validateJobData validates the Excel job data structure
+func validateJobData(jobData *JobData) error {
+	if jobData == nil {
+		return fmt.Errorf("job data is nil")
+	}
+
+	// Validate required fields
+	if jobData.JobNumber == "" {
+		return fmt.Errorf("job number is missing from Excel file")
+	}
+
+	// Validate samples
+	if len(jobData.Samples) == 0 {
+		logger.Info.Printf("No samples found in Excel file for job %s", jobData.JobNumber)
+	}
+
+	// Validate each sample has required data
+	for i, sample := range jobData.Samples {
+		if sample.BoringNumber == "" {
+			logger.Info.Printf("Sample %d: Boring number is empty", i+1)
+		}
+		if sample.Depth == "" {
+			logger.Info.Printf("Sample %d: Depth is empty", i+1)
+		}
+		if len(sample.Tests) == 0 {
+			logger.Info.Printf("Sample %d (%s at %s): No tests specified", i+1, sample.BoringNumber, sample.Depth)
+		}
+	}
+
+	return nil
+}
+
 // ProjectRoot is the root directory of the project
-const ProjectRoot = "/home/marcomascorro/developer/Reed-Engineering/lms"
+const ProjectRoot = "/home/marco-mascorro/developer/reed"
 
 // GetProjectPath returns the full path relative to the project root
 func GetProjectPath(relativePath string) string {
@@ -264,7 +303,7 @@ type MoistureTestWriter struct {
 }
 
 // InitMoistureTestFile creates the ex_project directory, copies the Lab file, and initializes the moisture writer
-func InitMoistureTestFile(jobNumber string) (*MoistureTestWriter, error) {
+func InitMoistureTestFile(jobNumber string, sourceLabFilePath string) (*MoistureTestWriter, error) {
 	// Create directory structure
 	dirPath := filepath.Join(ProjectRoot, "ex_project", jobNumber)
 	if err := os.MkdirAll(dirPath, 0755); err != nil {
@@ -273,8 +312,11 @@ func InitMoistureTestFile(jobNumber string) (*MoistureTestWriter, error) {
 	}
 	logger.Info.Printf("Created/verified directory: %s", dirPath)
 
-	// Source and destination paths
-	srcPath := filepath.Join(ProjectRoot, "projects", jobNumber, fmt.Sprintf("Lab_%s.xlsm", jobNumber))
+	// Use provided source Lab file path
+	srcPath := sourceLabFilePath
+	logger.Info.Printf("Using source Lab file: %s", srcPath)
+
+	// Destination uses the job number (which may include suffix like "25490_03")
 	dstPath := filepath.Join(dirPath, fmt.Sprintf("Lab_%s.xlsm", jobNumber))
 
 	writer := &MoistureTestWriter{
@@ -306,9 +348,52 @@ func InitMoistureTestFile(jobNumber string) (*MoistureTestWriter, error) {
 		return nil, err
 	}
 
+	// First, get all samples from the Main Form to know what we need to map
+	allSamples := []struct {
+		Boring string
+		Depth  string
+	}{}
+
+	mainFormSheetName := ""
+	for _, name := range writer.file.GetSheetList() {
+		if name == "Main Form" || name == "!Main Form" {
+			mainFormSheetName = name
+			break
+		}
+	}
+
+	if mainFormSheetName != "" {
+		mainRows, err := writer.file.GetRows(mainFormSheetName)
+		if err == nil {
+			currentBoring := ""
+			// Start from row 7 (index 6) to look for sample data
+			for i := 6; i < len(mainRows); i++ {
+				row := mainRows[i]
+				if len(row) > 1 {
+					// Check if first column has a boring number
+					firstCell := strings.TrimSpace(row[0])
+					if strings.HasPrefix(firstCell, "B-") {
+						currentBoring = firstCell
+					}
+					// Check if second column has a depth
+					depth := strings.TrimSpace(row[1])
+					if depth != "" && currentBoring != "" && !strings.Contains(strings.ToLower(depth), "depth") {
+						allSamples = append(allSamples, struct {
+							Boring string
+							Depth  string
+						}{currentBoring, depth})
+					}
+				}
+			}
+		}
+		logger.Info.Printf("Found %d samples in Main Form", len(allSamples))
+	}
+
 	// Build sample column map from all Moisture sheets (Moisture, Moisture2, Moisture3, etc.)
-	// Row 9 has Boring No, Row 10 has Depth
-	// Columns B onwards contain the sample data
+	// The sheet has multiple blocks of samples. Each block has:
+	// - A "Boring No" row with boring numbers across columns
+	// - A "Depth" row (immediately below) with depth values
+	// - Data rows below that (Can No at +2, Wet wt at +3, Wt of can at +6)
 	sheetNames := writer.file.GetSheetList()
 	for _, sheetName := range sheetNames {
 		// Check if this is a Moisture sheet
@@ -319,23 +404,40 @@ func InitMoistureTestFile(jobNumber string) (*MoistureTestWriter, error) {
 				continue
 			}
 
-			if len(rows) >= 10 {
-				boringRow := rows[8]  // Row 9 (0-indexed = 8)
-				depthRow := rows[9]   // Row 10 (0-indexed = 9)
+			// Scan ALL rows to find "Boring No" headers (there may be multiple blocks)
+			for rowIdx := 0; rowIdx < len(rows)-1; rowIdx++ {
+				row := rows[rowIdx]
+				if len(row) > 0 && strings.TrimSpace(row[0]) == "Boring No" {
+					// Found a block header! Next row should be depths
+					boringRow := row
+					depthRow := rows[rowIdx+1]
+					baseRow := rowIdx + 1 // Convert to 1-based Excel row number
 
-				// Map each column to its boring/depth combination
-				for colIdx := 1; colIdx < len(boringRow) && colIdx < len(depthRow); colIdx++ {
-					boring := strings.TrimSpace(boringRow[colIdx])
-					depth := strings.TrimSpace(depthRow[colIdx])
-					if boring != "" && depth != "" {
-						colLetter := getColumnLetter(colIdx + 1) // +1 because Excel is 1-indexed
-						key := fmt.Sprintf("%s|%s", boring, depth)
-						// Store sheet name with column letter
-						writer.sampleColMap[key] = fmt.Sprintf("%s|%s", sheetName, colLetter)
-						logger.Info.Printf("Mapped sample %s to %s column %s", key, sheetName, colLetter)
+					logger.Info.Printf("Found Moisture block at row %d in %s", baseRow, sheetName)
+
+					// Map each column to its boring/depth combination
+					for colIdx := 1; colIdx < len(boringRow) && colIdx < len(depthRow); colIdx++ {
+						boring := strings.TrimSpace(boringRow[colIdx])
+						depth := strings.TrimSpace(depthRow[colIdx])
+						if boring != "" && depth != "" && !strings.Contains(strings.ToLower(depth), "depth") {
+							colLetter := getColumnLetter(colIdx + 1) // +1 because Excel is 1-indexed
+							key := fmt.Sprintf("%s|%s", boring, depth)
+							// Store sheet name, column letter, AND base row for this block
+							// Format: "SheetName|ColumnLetter|BaseRow"
+							writer.sampleColMap[key] = fmt.Sprintf("%s|%s|%d", sheetName, colLetter, baseRow)
+							logger.Info.Printf("Mapped sample %s to %s column %s (block at row %d)", key, sheetName, colLetter, baseRow)
+						}
 					}
 				}
 			}
+		}
+	}
+
+	// Log any samples from Main Form that don't have mappings
+	for _, sample := range allSamples {
+		key := fmt.Sprintf("%s|%s", sample.Boring, sample.Depth)
+		if _, exists := writer.sampleColMap[key]; !exists {
+			logger.Error.Printf("WARNING: Sample %s is not in any Moisture sheet block!", key)
 		}
 	}
 
@@ -364,22 +466,29 @@ func (w *MoistureTestWriter) WriteMoistureSample(boringNumber, depth, canNo, can
 		return fmt.Errorf("no column mapping for %s", key)
 	}
 
-	// Parse sheet name and column letter from mapping (format: "SheetName|ColumnLetter")
+	// Parse sheet name, column letter, and base row from mapping (format: "SheetName|ColumnLetter|BaseRow")
 	parts := strings.Split(mapping, "|")
-	if len(parts) != 2 {
+	if len(parts) != 3 {
 		logger.Error.Printf("Invalid mapping format for sample %s: %s", key, mapping)
 		return fmt.Errorf("invalid mapping format for %s", key)
 	}
 	sheetName := parts[0]
 	colLetter := parts[1]
+	baseRow := 0
+	fmt.Sscanf(parts[2], "%d", &baseRow)
 
 	// Write data to the correct cells in the Moisture sheet
-	// Row 11: Can No.
-	// Row 12: Wet wt. and can
-	// Row 15: Wt. of can (Can Weight)
-	w.file.SetCellValue(sheetName, fmt.Sprintf("%s11", colLetter), canNo)
-	w.file.SetCellValue(sheetName, fmt.Sprintf("%s12", colLetter), wetWeight)
-	w.file.SetCellValue(sheetName, fmt.Sprintf("%s15", colLetter), canWeight)
+	// Offsets from base row (which is the "Boring No" row):
+	// +2: Can No.
+	// +3: Wet wt. and can
+	// +6: Wt. of can (Can Weight)
+	canNoRow := baseRow + 2
+	wetWtRow := baseRow + 3
+	canWtRow := baseRow + 6
+
+	w.file.SetCellValue(sheetName, fmt.Sprintf("%s%d", colLetter, canNoRow), canNo)
+	w.file.SetCellValue(sheetName, fmt.Sprintf("%s%d", colLetter, wetWtRow), wetWeight)
+	w.file.SetCellValue(sheetName, fmt.Sprintf("%s%d", colLetter, canWtRow), canWeight)
 
 	// Save file
 	if err := w.file.Save(); err != nil {
@@ -387,8 +496,8 @@ func (w *MoistureTestWriter) WriteMoistureSample(boringNumber, depth, canNo, can
 		return err
 	}
 
-	logger.Info.Printf("Wrote moisture sample to %s column %s: Boring=%s, Depth=%s, Can#=%s, CanWt=%s, WetWt=%s",
-		sheetName, colLetter, boringNumber, depth, canNo, canWeight, wetWeight)
+	logger.Info.Printf("Wrote moisture sample to %s column %s (rows %d,%d,%d): Boring=%s, Depth=%s, Can#=%s, CanWt=%s, WetWt=%s",
+		sheetName, colLetter, canNoRow, wetWtRow, canWtRow, boringNumber, depth, canNo, canWeight, wetWeight)
 
 	return nil
 }
@@ -406,7 +515,7 @@ func (w *MoistureTestWriter) GetFile() *excelize.File {
 	return w.file
 }
 
-// GetSampleMapping returns the sheet name and column letter for a given boring/depth
+// GetSampleMapping returns the sheet name, column letter, and base row for a given boring/depth
 func (w *MoistureTestWriter) GetSampleMapping(boringNumber, depth string) (string, string, bool) {
 	key := fmt.Sprintf("%s|%s", boringNumber, depth)
 	mapping, exists := w.sampleColMap[key]
@@ -414,12 +523,13 @@ func (w *MoistureTestWriter) GetSampleMapping(boringNumber, depth string) (strin
 		return "", "", false
 	}
 
-	// Parse sheet name and column letter from mapping (format: "SheetName|ColumnLetter")
+	// Parse sheet name and column letter from mapping (format: "SheetName|ColumnLetter|BaseRow")
 	parts := strings.Split(mapping, "|")
-	if len(parts) != 2 {
+	if len(parts) != 3 {
 		return "", "", false
 	}
-	return parts[0], parts[1], true
+	// Return "SheetName|BaseRow" as the first return value to maintain oven tracking compatibility
+	return fmt.Sprintf("%s|%s", parts[0], parts[2]), parts[1], true
 }
 
 // ProgressData represents saved progress for a job
@@ -447,6 +557,115 @@ type BackupData struct {
 	LastUpdated  string             `json:"last_updated"`
 	TotalSamples int                `json:"total_samples"`
 	Samples      []SampleBackupData `json:"samples"`
+}
+
+// LoadBackupData loads the backup data from a JSON file
+func LoadBackupData(backupFile string) (*BackupData, error) {
+	data, err := os.ReadFile(backupFile)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return &BackupData{Samples: []SampleBackupData{}}, nil
+		}
+		logger.Error.Printf("Failed to read backup file: %v", err)
+		return nil, err
+	}
+
+	// Check if file is empty
+	if len(data) == 0 {
+		logger.Info.Printf("Backup file is empty, returning new backup")
+		return &BackupData{Samples: []SampleBackupData{}}, nil
+	}
+
+	var backup BackupData
+	if err := json.Unmarshal(data, &backup); err != nil {
+		logger.Error.Printf("Failed to unmarshal backup data (file may be corrupted): %v", err)
+		return nil, fmt.Errorf("backup file corrupted or invalid JSON format: %v", err)
+	}
+
+	// Validate backup data
+	if err := validateBackupData(&backup); err != nil {
+		logger.Error.Printf("Backup data validation failed: %v", err)
+		return nil, fmt.Errorf("backup data validation failed: %v", err)
+	}
+
+	logger.Info.Printf("Successfully loaded and validated backup data: %d samples", len(backup.Samples))
+	return &backup, nil
+}
+
+// validateBackupData validates the structure and content of backup data
+func validateBackupData(backup *BackupData) error {
+	if backup == nil {
+		return fmt.Errorf("backup data is nil")
+	}
+
+	// Validate total samples count matches actual samples
+	if backup.TotalSamples != len(backup.Samples) {
+		logger.Info.Printf("TotalSamples mismatch: expected %d, got %d", backup.TotalSamples, len(backup.Samples))
+		// Auto-fix this issue
+		backup.TotalSamples = len(backup.Samples)
+	}
+
+	// Validate each sample
+	for i, sample := range backup.Samples {
+		if err := validateSampleBackupData(&sample, i); err != nil {
+			return fmt.Errorf("sample %d validation failed: %v", i+1, err)
+		}
+	}
+
+	return nil
+}
+
+// validateSampleBackupData validates a single sample's data
+func validateSampleBackupData(sample *SampleBackupData, index int) error {
+	// Check required fields
+	if sample.JobNumber == "" {
+		return fmt.Errorf("job number is empty")
+	}
+	if sample.BoringNumber == "" {
+		return fmt.Errorf("boring number is empty")
+	}
+	if sample.Depth == "" {
+		return fmt.Errorf("depth is empty")
+	}
+	if sample.CanNumber == "" {
+		return fmt.Errorf("can number is empty")
+	}
+	if sample.CanWeight == "" {
+		return fmt.Errorf("can weight is empty")
+	}
+	if sample.WetWeight == "" {
+		return fmt.Errorf("wet weight is empty")
+	}
+
+	// Validate numeric fields (optional but helpful)
+	if _, err := strconv.ParseFloat(sample.CanWeight, 64); err != nil {
+		logger.Info.Printf("Sample %d: Can weight '%s' is not a valid number", index+1, sample.CanWeight)
+	}
+	if _, err := strconv.ParseFloat(sample.WetWeight, 64); err != nil {
+		logger.Info.Printf("Sample %d: Wet weight '%s' is not a valid number", index+1, sample.WetWeight)
+	}
+
+	return nil
+}
+
+// SaveBackupDataToFile saves the backup data to a JSON file
+func SaveBackupDataToFile(backup *BackupData, backupFile string) error {
+	backup.LastUpdated = time.Now().Format("2006-01-02 15:04:05")
+	backup.TotalSamples = len(backup.Samples)
+
+	jsonData, err := json.MarshalIndent(backup, "", "  ")
+	if err != nil {
+		logger.Error.Printf("Failed to marshal backup data: %v", err)
+		return err
+	}
+
+	if err := os.WriteFile(backupFile, jsonData, 0644); err != nil {
+		logger.Error.Printf("Failed to write backup file: %v", err)
+		return err
+	}
+
+	logger.Info.Printf("Saved backup data: %d samples", len(backup.Samples))
+	return nil
 }
 
 // SaveSampleBackup saves a sample to the JSON backup file
@@ -553,14 +772,209 @@ func LoadProgress(jobNumber string) (int, error) {
 		return 0, err
 	}
 
-	var progress ProgressData
-	if err := json.Unmarshal(data, &progress); err != nil {
-		logger.Error.Printf("Failed to unmarshal progress data: %v", err)
-		return 0, err
+	// Check if file is empty
+	if len(data) == 0 {
+		logger.Info.Printf("Progress file is empty for job %s, starting from beginning", jobNumber)
+		return 0, nil
 	}
 
-	logger.Info.Printf("Loaded progress for job %s: resuming at sample index %d", jobNumber, progress.CurrentSampleIndex)
+	var progress ProgressData
+	if err := json.Unmarshal(data, &progress); err != nil {
+		logger.Error.Printf("Failed to unmarshal progress data (file may be corrupted): %v", err)
+		return 0, fmt.Errorf("progress file corrupted or invalid JSON format: %v", err)
+	}
+
+	// Validate progress index
+	if progress.CurrentSampleIndex < 0 {
+		logger.Info.Printf("Invalid progress index %d for job %s, resetting to 0", progress.CurrentSampleIndex, jobNumber)
+		return 0, nil
+	}
+
+	// Load job data to verify index is within bounds (use latest Lab file)
+	jobFile, err := FindLatestLabFile(jobNumber)
+	if err != nil {
+		logger.Info.Printf("Could not find Lab file for validation: %v", err)
+		// Return progress as is if we can't validate
+		return progress.CurrentSampleIndex, nil
+	}
+	jobData, err := ExcelToJSON(jobFile)
+	if err == nil && jobData != nil {
+		totalSamples := len(jobData.Samples)
+		if progress.CurrentSampleIndex > totalSamples {
+			logger.Info.Printf("Progress index %d exceeds total samples %d for job %s, capping at total",
+				progress.CurrentSampleIndex, totalSamples, jobNumber)
+			return totalSamples, nil
+		}
+	}
+
+	logger.Info.Printf("Loaded and validated progress for job %s: resuming at sample index %d", jobNumber, progress.CurrentSampleIndex)
 	return progress.CurrentSampleIndex, nil
+}
+
+// LabFileInfo holds information about a Lab file
+type LabFileInfo struct {
+	FilePath string // Full absolute path to the file
+	FileName string // Just the filename
+	Suffix   string // The suffix part (e.g., "02", "03", or "" for base file)
+}
+
+// FindAllLabFiles finds all Lab files for a job (returns Lab_XXXXX.xlsm, Lab_XXXXX_02.xlsm, etc.)
+func FindAllLabFiles(jobNumber string) ([]LabFileInfo, error) {
+	projectDir := filepath.Join(ProjectRoot, "projects", jobNumber)
+
+	// Check if directory exists
+	if _, err := os.Stat(projectDir); os.IsNotExist(err) {
+		return nil, fmt.Errorf("project directory does not exist: %s", projectDir)
+	}
+
+	// Read all files in the project directory
+	entries, err := os.ReadDir(projectDir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read project directory: %v", err)
+	}
+
+	// Find all Lab files matching the pattern Lab_<jobNumber>*.xlsm
+	var labFiles []LabFileInfo
+	basePattern := fmt.Sprintf("Lab_%s", jobNumber)
+
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+
+		fileName := entry.Name()
+		// Check if it matches Lab_<jobNumber>.xlsm or Lab_<jobNumber>_XX.xlsm
+		if strings.HasPrefix(fileName, basePattern) && strings.HasSuffix(fileName, ".xlsm") {
+			// Extract suffix if present
+			nameWithoutExt := strings.TrimSuffix(fileName, ".xlsm")
+			suffix := ""
+
+			if nameWithoutExt != basePattern {
+				// Has a suffix - extract it
+				parts := strings.Split(nameWithoutExt, "_")
+				if len(parts) >= 3 {
+					suffix = parts[len(parts)-1]
+				}
+			}
+
+			fullPath := filepath.Join(projectDir, fileName)
+			labFiles = append(labFiles, LabFileInfo{
+				FilePath: fullPath,
+				FileName: fileName,
+				Suffix:   suffix,
+			})
+		}
+	}
+
+	if len(labFiles) == 0 {
+		return nil, fmt.Errorf("no Lab files found for job %s", jobNumber)
+	}
+
+	// Sort by suffix (base file first, then numerical order)
+	// This ensures consistent ordering: Lab_25490.xlsm, Lab_25490_02.xlsm, Lab_25490_03.xlsm
+	for i := 0; i < len(labFiles)-1; i++ {
+		for j := i + 1; j < len(labFiles); j++ {
+			// Base file (empty suffix) always comes first
+			if labFiles[i].Suffix != "" && labFiles[j].Suffix == "" {
+				labFiles[i], labFiles[j] = labFiles[j], labFiles[i]
+			} else if labFiles[i].Suffix != "" && labFiles[j].Suffix != "" {
+				// Both have suffixes - sort numerically
+				suffix1, _ := strconv.Atoi(labFiles[i].Suffix)
+				suffix2, _ := strconv.Atoi(labFiles[j].Suffix)
+				if suffix1 > suffix2 {
+					labFiles[i], labFiles[j] = labFiles[j], labFiles[i]
+				}
+			}
+		}
+	}
+
+	logger.Info.Printf("Found %d Lab files for job %s", len(labFiles), jobNumber)
+	for _, f := range labFiles {
+		logger.Info.Printf("  - %s (suffix: '%s')", f.FileName, f.Suffix)
+	}
+
+	return labFiles, nil
+}
+
+// FindLatestLabFile finds the latest Lab file for a job (handles Lab_XXXXX.xlsm and Lab_XXXXX_02.xlsm, etc.)
+func FindLatestLabFile(jobNumber string) (string, error) {
+	projectDir := filepath.Join(ProjectRoot, "projects", jobNumber)
+
+	// Check if directory exists
+	if _, err := os.Stat(projectDir); os.IsNotExist(err) {
+		return "", fmt.Errorf("project directory does not exist: %s", projectDir)
+	}
+
+	// Read all files in the project directory
+	entries, err := os.ReadDir(projectDir)
+	if err != nil {
+		return "", fmt.Errorf("failed to read project directory: %v", err)
+	}
+
+	// Find all Lab files matching the pattern Lab_<jobNumber>*.xlsm
+	var labFiles []string
+	basePattern := fmt.Sprintf("Lab_%s", jobNumber)
+
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+
+		fileName := entry.Name()
+		// Check if it matches Lab_<jobNumber>.xlsm or Lab_<jobNumber>_XX.xlsm
+		if strings.HasPrefix(fileName, basePattern) && strings.HasSuffix(fileName, ".xlsm") {
+			labFiles = append(labFiles, fileName)
+		}
+	}
+
+	if len(labFiles) == 0 {
+		return "", fmt.Errorf("no Lab files found for job %s", jobNumber)
+	}
+
+	// If only one file, return it
+	if len(labFiles) == 1 {
+		return filepath.Join(projectDir, labFiles[0]), nil
+	}
+
+	// Multiple files found - find the one with highest suffix
+	var latestFile string
+	highestSuffix := -1
+
+	for _, fileName := range labFiles {
+		// Remove .xlsm extension
+		nameWithoutExt := strings.TrimSuffix(fileName, ".xlsm")
+
+		// Check if it's the base file (no suffix) or has a suffix
+		if nameWithoutExt == basePattern {
+			// This is Lab_<jobNumber>.xlsm (no suffix = 0)
+			if highestSuffix < 0 {
+				highestSuffix = 0
+				latestFile = fileName
+			}
+		} else {
+			// Try to extract suffix (e.g., _02, _03)
+			parts := strings.Split(nameWithoutExt, "_")
+			if len(parts) >= 3 {
+				// Last part should be the suffix number
+				suffixStr := parts[len(parts)-1]
+				if suffix, err := strconv.Atoi(suffixStr); err == nil {
+					if suffix > highestSuffix {
+						highestSuffix = suffix
+						latestFile = fileName
+					}
+				}
+			}
+		}
+	}
+
+	if latestFile == "" {
+		// Fallback to first file if parsing failed
+		latestFile = labFiles[0]
+	}
+
+	fullPath := filepath.Join(projectDir, latestFile)
+	logger.Info.Printf("Found latest Lab file for job %s: %s (suffix: %d)", jobNumber, latestFile, highestSuffix)
+	return fullPath, nil
 }
 
 // DiscoverJobs scans the projects folder for Lab_*.xlsm files and returns job information
@@ -570,7 +984,7 @@ func DiscoverJobs() ([]models.Job, error) {
 
 	// Check if projects directory exists
 	if _, err := os.Stat(projectsDir); os.IsNotExist(err) {
-		logger.Info.Printf("Projects directory does not exist: %s", projectsDir)
+		logger.Error.Printf("Projects directory does not exist: %s", projectsDir)
 		return jobs, nil
 	}
 
@@ -587,32 +1001,47 @@ func DiscoverJobs() ([]models.Job, error) {
 		}
 
 		jobNumber := entry.Name()
-		labFilePath := filepath.Join(projectsDir, jobNumber, fmt.Sprintf("Lab_%s.xlsm", jobNumber))
 
-		// Check if Lab file exists
-		if _, err := os.Stat(labFilePath); os.IsNotExist(err) {
-			continue
-		}
-
-		// Extract job info from Excel file
-		job, err := extractJobInfoFromExcel(labFilePath, jobNumber)
+		// Find ALL Lab files for this job (not just the latest)
+		labFiles, err := FindAllLabFiles(jobNumber)
 		if err != nil {
-			logger.Error.Printf("Failed to extract job info from %s: %v", labFilePath, err)
+			logger.Error.Printf("Skipping job %s: %v", jobNumber, err)
 			continue
 		}
 
-		jobs = append(jobs, job)
-		logger.Info.Printf("Discovered job: %s - %s", job.ProjectNumber, job.ProjectName)
+		// Create a job entry for each Lab file version
+		for _, labFileInfo := range labFiles {
+
+			// Determine display job number (add suffix if not base file)
+			displayJobNumber := jobNumber
+			if labFileInfo.Suffix != "" {
+				displayJobNumber = fmt.Sprintf("%s_%s", jobNumber, labFileInfo.Suffix)
+			}
+
+			// Extract job info from Excel file
+			job, err := extractJobInfoFromExcel(labFileInfo.FilePath, displayJobNumber, jobNumber)
+			if err != nil {
+				logger.Error.Printf("Failed to extract job info from %s: %v", labFileInfo.FilePath, err)
+				continue
+			}
+
+			// Set the Lab file path
+			job.LabFilePath = labFileInfo.FilePath
+
+			jobs = append(jobs, job)
+			logger.Info.Printf("Successfully discovered job: %s - %s", job.ProjectNumber, job.ProjectName)
+		}
 	}
 
-	logger.Info.Printf("Discovered %d jobs in projects folder", len(jobs))
+	logger.Info.Printf("Total discovered %d jobs in projects folder", len(jobs))
 	return jobs, nil
 }
 
 // extractJobInfoFromExcel reads job information from the Excel file
-func extractJobInfoFromExcel(filePath string, jobNumber string) (models.Job, error) {
+func extractJobInfoFromExcel(filePath string, displayJobNumber string, baseJobNumber string) (models.Job, error) {
 	job := models.Job{
-		ProjectNumber:    jobNumber,
+		ProjectNumber:    displayJobNumber,
+		BaseJobNumber:    baseJobNumber,
 		ProjectName:      "Unknown Project",
 		EngineerInitials: "N/A",
 		DateAssigned:     time.Now(),
@@ -1149,13 +1578,14 @@ func GetOvenCanCount() (int, error) {
 
 // WriteDryWeightToMoistureSheet writes the dry weight to the moisture sheet for a can
 // and calculates: Wt. of water, Dry wt. of soil, and Moisture Content
-// Row 11: Can No.
-// Row 12: Wet wt. and can
-// Row 13: Dry wt. of soil and can (input)
-// Row 14: Wt. of water = Row 12 - Row 13
-// Row 15: Wt. of can
-// Row 16: Dry wt. of soil = Row 13 - Row 15
-// Row 17: Moisture Content = (Wt. of water / Dry wt. of soil) * 100
+// Offsets from base row (which is the "Boring No" row):
+// +2: Can No.
+// +3: Wet wt. and can
+// +4: Dry wt. of soil and can (input)
+// +5: Wt. of water = Row +3 - Row +4
+// +6: Wt. of can
+// +7: Dry wt. of soil = Row +4 - Row +6
+// +8: Moisture Content = (Wt. of water / Dry wt. of soil) * 100
 func WriteDryWeightToMoistureSheet(can OvenCanData, dryWeight string) error {
 	// Open the Lab file for this job
 	filePath := filepath.Join(ProjectRoot, "ex_project", can.JobNumber, fmt.Sprintf("Lab_%s.xlsm", can.JobNumber))
@@ -1167,12 +1597,29 @@ func WriteDryWeightToMoistureSheet(can OvenCanData, dryWeight string) error {
 	}
 	defer f.Close()
 
-	// Read existing values for calculations
-	wetWtAndCanCell := fmt.Sprintf("%s12", can.MoistureColumn)
-	wtOfCanCell := fmt.Sprintf("%s15", can.MoistureColumn)
+	// Parse MoistureSheet which now contains "SheetName|BaseRow"
+	sheetParts := strings.Split(can.MoistureSheet, "|")
+	sheetName := can.MoistureSheet
+	baseRow := 9 // Default for old format compatibility
+	if len(sheetParts) == 2 {
+		sheetName = sheetParts[0]
+		fmt.Sscanf(sheetParts[1], "%d", &baseRow)
+	}
 
-	wetWtAndCanStr, _ := f.GetCellValue(can.MoistureSheet, wetWtAndCanCell)
-	wtOfCanStr, _ := f.GetCellValue(can.MoistureSheet, wtOfCanCell)
+	// Calculate actual row numbers based on base row
+	wetWtRow := baseRow + 3
+	dryWtAndCanRow := baseRow + 4
+	wtOfWaterRow := baseRow + 5
+	wtOfCanRow := baseRow + 6
+	dryWtOfSoilRow := baseRow + 7
+	moistureContentRow := baseRow + 8
+
+	// Read existing values for calculations
+	wetWtAndCanCell := fmt.Sprintf("%s%d", can.MoistureColumn, wetWtRow)
+	wtOfCanCell := fmt.Sprintf("%s%d", can.MoistureColumn, wtOfCanRow)
+
+	wetWtAndCanStr, _ := f.GetCellValue(sheetName, wetWtAndCanCell)
+	wtOfCanStr, _ := f.GetCellValue(sheetName, wtOfCanCell)
 
 	// Parse values as floats
 	var wetWtAndCan, wtOfCan, dryWtAndCan float64
@@ -1181,18 +1628,19 @@ func WriteDryWeightToMoistureSheet(can OvenCanData, dryWeight string) error {
 	fmt.Sscanf(dryWeight, "%f", &dryWtAndCan)
 
 	// Calculate derived values
-	wtOfWater := wetWtAndCan - dryWtAndCan       // Row 14
-	dryWtOfSoil := dryWtAndCan - wtOfCan         // Row 16
+	wtOfWater := wetWtAndCan - dryWtAndCan       // Wt. of water
+	dryWtOfSoil := dryWtAndCan - wtOfCan         // Dry wt. of soil
 	moistureContent := 0.0
 	if dryWtOfSoil > 0 {
-		moistureContent = (wtOfWater / dryWtOfSoil) * 100 // Row 17
+		moistureContent = (wtOfWater / dryWtOfSoil) * 100 // Moisture Content
+		moistureContent = math.Round(moistureContent)      // Round to nearest whole number
 	}
 
 	// Write all values to the moisture sheet
-	f.SetCellValue(can.MoistureSheet, fmt.Sprintf("%s13", can.MoistureColumn), dryWtAndCan)      // Dry wt. of soil and can
-	f.SetCellValue(can.MoistureSheet, fmt.Sprintf("%s14", can.MoistureColumn), wtOfWater)        // Wt. of water
-	f.SetCellValue(can.MoistureSheet, fmt.Sprintf("%s16", can.MoistureColumn), dryWtOfSoil)      // Dry wt. of soil
-	f.SetCellValue(can.MoistureSheet, fmt.Sprintf("%s17", can.MoistureColumn), moistureContent)  // Moisture Content
+	f.SetCellValue(sheetName, fmt.Sprintf("%s%d", can.MoistureColumn, dryWtAndCanRow), dryWtAndCan)      // Dry wt. of soil and can
+	f.SetCellValue(sheetName, fmt.Sprintf("%s%d", can.MoistureColumn, wtOfWaterRow), wtOfWater)          // Wt. of water
+	f.SetCellValue(sheetName, fmt.Sprintf("%s%d", can.MoistureColumn, dryWtOfSoilRow), dryWtOfSoil)      // Dry wt. of soil
+	f.SetCellValue(sheetName, fmt.Sprintf("%s%d", can.MoistureColumn, moistureContentRow), moistureContent)  // Moisture Content (rounded)
 
 	// Save the file
 	if err := f.Save(); err != nil {
@@ -1200,12 +1648,13 @@ func WriteDryWeightToMoistureSheet(can OvenCanData, dryWeight string) error {
 		return err
 	}
 
-	logger.Info.Printf("Wrote moisture calculations to %s column %s (Job: %s, Can: %s):\n"+
+	logger.Info.Printf("Wrote moisture calculations to %s column %s (rows %d,%d,%d,%d) (Job: %s, Can: %s):\n"+
 		"  Dry wt. of soil and can: %.2f\n"+
 		"  Wt. of water: %.2f\n"+
 		"  Dry wt. of soil: %.2f\n"+
 		"  Moisture Content: %.2f%%",
-		can.MoistureSheet, can.MoistureColumn, can.JobNumber, can.CanNumber,
+		sheetName, can.MoistureColumn, dryWtAndCanRow, wtOfWaterRow, dryWtOfSoilRow, moistureContentRow,
+		can.JobNumber, can.CanNumber,
 		dryWtAndCan, wtOfWater, dryWtOfSoil, moistureContent)
 	return nil
 }

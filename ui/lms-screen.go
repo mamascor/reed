@@ -33,7 +33,19 @@ func NewLMSScreen(app *tview.Application, onBack func()) (tview.Primitive, *tvie
 			app.SetRoot(pullJobScreen, true)
 			app.SetFocus(pullJobTable)
 		}).
-		AddItem("Morning Count", "Measure can weights in the morning", '3', func() {
+		AddItem("Edit Past Samples", "Edit moisture and suction data for past samples", '3', func() {
+			logger.Info.Println("Navigating to Edit Samples (Job Selection)")
+			editJobScreen, editJobTable := NewEditJobSelectionScreen(app, func() {
+				// Go back to LMS screen
+				logger.Info.Println("Returning to LMS screen from Edit Samples")
+				lmsScreen, lmsList := NewLMSScreen(app, onBack)
+				app.SetRoot(lmsScreen, true)
+				app.SetFocus(lmsList)
+			})
+			app.SetRoot(editJobScreen, true)
+			app.SetFocus(editJobTable)
+		}).
+		AddItem("Morning Count", "Measure can weights in the morning", '4', func() {
 			logger.Info.Println("Navigating to Morning Count screen")
 			morningCountScreen := NewMorningCountScreen(app, func() {
 				// Go back to LMS screen

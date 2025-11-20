@@ -1,0 +1,8 @@
+{
+  "check_duplicate_cans": false,
+  "auto_save_interval_seconds": 30,
+  "max_samples_per_job": 1000,
+  "enable_numeric_validation": true,
+  "backup_on_save": true,
+  "log_level": "info"
+}

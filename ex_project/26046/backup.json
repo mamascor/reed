@@ -1,37 +1,247 @@
 {
   "job_number": "26046",
-  "last_updated": "2025-11-16 17:15:27",
-  "total_samples": 3,
+  "last_updated": "2025-11-18 05:47:33",
+  "total_samples": 24,
   "samples": [
     {
       "job_number": "26046",
-      "boring_number": "B-12",
+      "boring_number": "B-11",
       "depth": "1.5 - 3",
-      "can_number": "215",
-      "can_weight": "35.2",
-      "wet_weight": "208.2",
+      "can_number": "123",
+      "can_weight": "123",
+      "wet_weight": "123",
       "suction_can_no": "123",
-      "timestamp": "2025-11-16 17:12:45"
+      "timestamp": "2025-11-18 05:45:55"
     },
     {
       "job_number": "26046",
-      "boring_number": "B-12",
+      "boring_number": "B-11",
       "depth": "3 - 4.5",
-      "can_number": "123",
-      "can_weight": "35.5",
-      "wet_weight": "205.5",
-      "suction_can_no": "123",
-      "timestamp": "2025-11-16 17:14:42"
+      "can_number": "1234",
+      "can_weight": "123213",
+      "wet_weight": "sfd",
+      "suction_can_no": "432fssd",
+      "timestamp": "2025-11-18 05:46:03"
     },
     {
       "job_number": "26046",
-      "boring_number": "B-12",
+      "boring_number": "B-11",
       "depth": "4.5 - 6",
-      "can_number": "123",
-      "can_weight": "58.2",
-      "wet_weight": "123.2",
-      "suction_can_no": "123",
-      "timestamp": "2025-11-16 17:15:27"
+      "can_number": "df",
+      "can_weight": "f",
+      "wet_weight": "sfdsdfdsf",
+      "suction_can_no": "dsfds",
+      "timestamp": "2025-11-18 05:46:06"
+    },
+    {
+      "job_number": "26046",
+      "boring_number": "B-11",
+      "depth": "9 - 10",
+      "can_number": "f",
+      "can_weight": "ds",
+      "wet_weight": "fs",
+      "suction_can_no": "f",
+      "timestamp": "2025-11-18 05:46:07"
+    },
+    {
+      "job_number": "26046",
+      "boring_number": "B-11",
+      "depth": "14 - 15",
+      "can_number": "fs",
+      "can_weight": "f",
+      "wet_weight": "sdf",
+      "suction_can_no": "s",
+      "timestamp": "2025-11-18 05:46:08"
+    },
+    {
+      "job_number": "26046",
+      "boring_number": "B-11",
+      "depth": "19 - 20",
+      "can_number": "sdf",
+      "can_weight": "sd",
+      "wet_weight": "f",
+      "suction_can_no": "dsf",
+      "timestamp": "2025-11-18 05:46:09"
+    },
+    {
+      "job_number": "26046",
+      "boring_number": "B-14",
+      "depth": "1.5 - 3",
+      "can_number": "sd",
+      "can_weight": "f",
+      "wet_weight": "sdf",
+      "suction_can_no": "sdf",
+      "timestamp": "2025-11-18 05:46:10"
+    },
+    {
+      "job_number": "26046",
+      "boring_number": "B-14",
+      "depth": "3 - 4.5",
+      "can_number": "sf",
+      "can_weight": "dsf",
+      "wet_weight": "gfjyufd",
+      "suction_can_no": "trf",
+      "timestamp": "2025-11-18 05:46:13"
+    },
+    {
+      "job_number": "26046",
+      "boring_number": "B-14",
+      "depth": "4.5 - 6",
+      "can_number": "fd",
+      "can_weight": "fd",
+      "wet_weight": "dfgd",
+      "suction_can_no": "fdgg",
+      "timestamp": "2025-11-18 05:46:15"
+    },
+    {
+      "job_number": "26046",
+      "boring_number": "B-14",
+      "depth": "9 - 10",
+      "can_number": "d",
+      "can_weight": "g",
+      "wet_weight": "fdg",
+      "suction_can_no": "df",
+      "timestamp": "2025-11-18 05:46:16"
+    },
+    {
+      "job_number": "26046",
+      "boring_number": "B-14",
+      "depth": "14 - 15",
+      "can_number": "fdgfd",
+      "can_weight": "g",
+      "wet_weight": "gd",
+      "suction_can_no": "d",
+      "timestamp": "2025-11-18 05:46:19"
+    },
+    {
+      "job_number": "26046",
+      "boring_number": "B-14",
+      "depth": "19 - 20",
+      "can_number": "gd",
+      "can_weight": "f",
+      "wet_weight": "gfdg",
+      "suction_can_no": "d21312",
+      "timestamp": "2025-11-18 05:46:46"
+    },
+    {
+      "job_number": "26046",
+      "boring_number": "B-20",
+      "depth": "1.5 - 3",
+      "can_number": "3",
+      "can_weight": "213",
+      "wet_weight": "123",
+      "suction_can_no": "21",
+      "timestamp": "2025-11-18 05:46:47"
+    },
+    {
+      "job_number": "26046",
+      "boring_number": "B-20",
+      "depth": "3 - 4.5",
+      "can_number": "21",
+      "can_weight": "3",
+      "wet_weight": "213",
+      "suction_can_no": "213",
+      "timestamp": "2025-11-18 05:46:49"
+    },
+    {
+      "job_number": "26046",
+      "boring_number": "B-20",
+      "depth": "4.5 - 6",
+      "can_number": "321",
+      "can_weight": "3",
+      "wet_weight": "21",
+      "suction_can_no": "3",
+      "timestamp": "2025-11-18 05:46:50"
+    },
+    {
+      "job_number": "26046",
+      "boring_number": "B-20",
+      "depth": "9 - 10",
+      "can_number": "3213",
+      "can_weight": "321",
+      "wet_weight": "21321",
+      "suction_can_no": "3213",
+      "timestamp": "2025-11-18 05:46:52"
+    },
+    {
+      "job_number": "26046",
+      "boring_number": "B-20",
+      "depth": "14 - 15",
+      "can_number": "3213321312",
+      "can_weight": "33213321",
+      "wet_weight": "2121332132121312",
+      "suction_can_no": "321333321",
+      "timestamp": "2025-11-18 05:47:03"
+    },
+    {
+      "job_number": "26046",
+      "boring_number": "B-20",
+      "depth": "19 - 20",
+      "can_number": "21321",
+      "can_weight": "3",
+      "wet_weight": "21",
+      "suction_can_no": "312",
+      "timestamp": "2025-11-18 05:47:06"
+    },
+    {
+      "job_number": "26046",
+      "boring_number": "B-26",
+      "depth": "1.5 - 3",
+      "can_number": "213214234gf",
+      "can_weight": "213321321321",
+      "wet_weight": "321321",
+      "suction_can_no": "3213213213",
+      "timestamp": "2025-11-18 05:47:14"
+    },
+    {
+      "job_number": "26046",
+      "boring_number": "B-26",
+      "depth": "3 - 4.5",
+      "can_number": "tretefd3",
+      "can_weight": "3",
+      "wet_weight": "33",
+      "suction_can_no": "33",
+      "timestamp": "2025-11-18 05:47:19"
+    },
+    {
+      "job_number": "26046",
+      "boring_number": "B-26",
+      "depth": "4.5 - 6",
+      "can_number": "33",
+      "can_weight": "33",
+      "wet_weight": "333",
+      "suction_can_no": "333",
+      "timestamp": "2025-11-18 05:47:23"
+    },
+    {
+      "job_number": "26046",
+      "boring_number": "B-26",
+      "depth": "9 - 10",
+      "can_number": "333",
+      "can_weight": "3333",
+      "wet_weight": "33",
+      "suction_can_no": "3333",
+      "timestamp": "2025-11-18 05:47:28"
+    },
+    {
+      "job_number": "26046",
+      "boring_number": "B-26",
+      "depth": "14 - 15",
+      "can_number": "34",
+      "can_weight": "34",
+      "wet_weight": "44",
+      "suction_can_no": "344",
+      "timestamp": "2025-11-18 05:47:32"
+    },
+    {
+      "job_number": "26046",
+      "boring_number": "B-26",
+      "depth": "19 - 20",
+      "can_number": "4",
+      "can_weight": "4",
+      "wet_weight": "4",
+      "suction_can_no": "4",
+      "timestamp": "2025-11-18 05:47:33"
     }
   ]
 }
