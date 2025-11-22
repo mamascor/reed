@@ -469,15 +469,6 @@
       "moisture_column": "F"
     },
     {
-      "can_number": "3273",
-      "job_number": "25490",
-      "boring_number": "B-56",
-      "depth": "14 - 15",
-      "time_in": "2025-11-19 09:37:55",
-      "moisture_sheet": "Moisture|42",
-      "moisture_column": "G"
-    },
-    {
       "can_number": "0",
       "job_number": "25490",
       "boring_number": "B-56",
@@ -485,96 +476,6 @@
       "time_in": "2025-11-19 10:08:21",
       "moisture_sheet": "Moisture|42",
       "moisture_column": "H"
-    },
-    {
-      "can_number": "3557",
-      "job_number": "25490",
-      "boring_number": "B-56",
-      "depth": "24 - 25",
-      "time_in": "2025-11-19 10:11:18",
-      "moisture_sheet": "Moisture|42",
-      "moisture_column": "I"
-    },
-    {
-      "can_number": "3436",
-      "job_number": "25490",
-      "boring_number": "B-56",
-      "depth": "29 - 30",
-      "time_in": "2025-11-19 10:12:46",
-      "moisture_sheet": "Moisture2|9",
-      "moisture_column": "B"
-    },
-    {
-      "can_number": "3200",
-      "job_number": "25490",
-      "boring_number": "B-57",
-      "depth": "1.5 - 3",
-      "time_in": "2025-11-19 10:15:56",
-      "moisture_sheet": "Moisture2|9",
-      "moisture_column": "C"
-    },
-    {
-      "can_number": "3074",
-      "job_number": "25490",
-      "boring_number": "B-57",
-      "depth": "3 - 4.5",
-      "time_in": "2025-11-19 10:17:32",
-      "moisture_sheet": "Moisture2|9",
-      "moisture_column": "D"
-    },
-    {
-      "can_number": "3483",
-      "job_number": "25490",
-      "boring_number": "B-57",
-      "depth": "4.5 - 6",
-      "time_in": "2025-11-19 10:19:02",
-      "moisture_sheet": "Moisture2|9",
-      "moisture_column": "E"
-    },
-    {
-      "can_number": "3187",
-      "job_number": "25490",
-      "boring_number": "B-57",
-      "depth": "9 - 10",
-      "time_in": "2025-11-19 10:20:54",
-      "moisture_sheet": "Moisture2|9",
-      "moisture_column": "F"
-    },
-    {
-      "can_number": "3558",
-      "job_number": "25490",
-      "boring_number": "B-57",
-      "depth": "14 - 15",
-      "time_in": "2025-11-19 10:31:42",
-      "moisture_sheet": "Moisture2|9",
-      "moisture_column": "G"
-    },
-    {
-      "can_number": "3231",
-      "job_number": "25490",
-      "boring_number": "B-57",
-      "depth": "19 - 20",
-      "time_in": "2025-11-19 10:35:25",
-      "moisture_sheet": "Moisture2|9",
-      "moisture_column": "H"
-    },
-    {
-      "can_number": "3223",
-      "job_number": "25490",
-      "boring_number": "B-57",
-      "depth": "24 - 25",
-      "time_in": "2025-11-19 10:38:20",
-      "moisture_sheet": "Moisture2|9",
-      "moisture_column": "I"
-    },
-    {
-      "can_number": "3232",
-      "job_number": "25490",
-      "boring_number": "B-60",
-      "depth": "1.5 - 3",
-      "time_in": "2025-11-19 10:46:39",
-      "moisture_sheet": "Moisture2|20",
-      "moisture_column": "B"
     },
     {
       "can_number": "50",
@@ -586,15 +487,6 @@
       "moisture_column": "C"
     },
     {
-      "can_number": "3426",
-      "job_number": "25490",
-      "boring_number": "B-60",
-      "depth": "4.5 - 6",
-      "time_in": "2025-11-19 10:49:32",
-      "moisture_sheet": "Moisture2|20",
-      "moisture_column": "D"
-    },
-    {
       "can_number": "3540",
       "job_number": "25490",
       "boring_number": "B-60",
@@ -604,87 +496,6 @@
       "moisture_column": "E"
     },
     {
-      "can_number": "3521",
-      "job_number": "25490",
-      "boring_number": "B-61",
-      "depth": "1.5 - 3",
-      "time_in": "2025-11-19 10:53:15",
-      "moisture_sheet": "Moisture2|20",
-      "moisture_column": "F"
-    },
-    {
-      "can_number": "3443",
-      "job_number": "25490",
-      "boring_number": "B-61",
-      "depth": "3 - 4.5",
-      "time_in": "2025-11-19 10:54:48",
-      "moisture_sheet": "Moisture2|20",
-      "moisture_column": "G"
-    },
-    {
-      "can_number": "3170",
-      "job_number": "25490",
-      "boring_number": "B-61",
-      "depth": "4.5 - 6",
-      "time_in": "2025-11-19 10:56:08",
-      "moisture_sheet": "Moisture2|20",
-      "moisture_column": "H"
-    },
-    {
-      "can_number": "3401",
-      "job_number": "25490",
-      "boring_number": "B-61",
-      "depth": "9 - 10",
-      "time_in": "2025-11-19 10:57:12",
-      "moisture_sheet": "Moisture2|20",
-      "moisture_column": "I"
-    },
-    {
-      "can_number": "3452",
-      "job_number": "25490",
-      "boring_number": "B-62",
-      "depth": "1.5 - 3",
-      "time_in": "2025-11-19 10:59:08",
-      "moisture_sheet": "Moisture2|31",
-      "moisture_column": "B"
-    },
-    {
-      "can_number": "3138",
-      "job_number": "25490",
-      "boring_number": "B-62",
-      "depth": "3 - 4.5",
-      "time_in": "2025-11-19 11:00:12",
-      "moisture_sheet": "Moisture2|31",
-      "moisture_column": "C"
-    },
-    {
-      "can_number": "3158",
-      "job_number": "25490",
-      "boring_number": "B-62",
-      "depth": "4.5 - 6",
-      "time_in": "2025-11-19 11:01:41",
-      "moisture_sheet": "Moisture2|31",
-      "moisture_column": "D"
-    },
-    {
-      "can_number": "3199",
-      "job_number": "25490",
-      "boring_number": "B-62",
-      "depth": "9 - 10",
-      "time_in": "2025-11-19 11:03:15",
-      "moisture_sheet": "Moisture2|31",
-      "moisture_column": "E"
-    },
-    {
-      "can_number": "3413",
-      "job_number": "25490",
-      "boring_number": "B-63",
-      "depth": "1.5 - 3",
-      "time_in": "2025-11-19 11:05:18",
-      "moisture_sheet": "Moisture2|31",
-      "moisture_column": "F"
-    },
-    {
       "can_number": "3032",
       "job_number": "25490",
       "boring_number": "B-63",
@@ -692,51 +503,6 @@
       "time_in": "2025-11-19 11:06:35",
       "moisture_sheet": "Moisture2|31",
       "moisture_column": "G"
-    },
-    {
-      "can_number": "3189",
-      "job_number": "25490",
-      "boring_number": "B-63",
-      "depth": "9 - 10",
-      "time_in": "2025-11-19 11:09:25",
-      "moisture_sheet": "Moisture2|31",
-      "moisture_column": "I"
-    },
-    {
-      "can_number": "3235",
-      "job_number": "25490",
-      "boring_number": "B-66",
-      "depth": "1.5 - 3",
-      "time_in": "2025-11-19 11:11:49",
-      "moisture_sheet": "Moisture2|42",
-      "moisture_column": "B"
-    },
-    {
-      "can_number": "3424",
-      "job_number": "25490",
-      "boring_number": "B-66",
-      "depth": "3 - 4.5",
-      "time_in": "2025-11-19 11:12:55",
-      "moisture_sheet": "Moisture2|42",
-      "moisture_column": "C"
-    },
-    {
-      "can_number": "3047",
-      "job_number": "25490",
-      "boring_number": "B-66",
-      "depth": "4.5 - 6",
-      "time_in": "2025-11-19 11:14:34",
-      "moisture_sheet": "Moisture2|42",
-      "moisture_column": "D"
-    },
-    {
-      "can_number": "3210",
-      "job_number": "25490",
-      "boring_number": "B-66",
-      "depth": "9 - 10",
-      "time_in": "2025-11-19 11:16:23",
-      "moisture_sheet": "Moisture2|42",
-      "moisture_column": "E"
     },
     {
       "can_number": "3260",
@@ -755,15 +521,6 @@
       "time_in": "2025-11-19 13:44:13",
       "moisture_sheet": "Moisture|9",
       "moisture_column": "D"
-    },
-    {
-      "can_number": "3230",
-      "job_number": "25490_03",
-      "boring_number": "B-43",
-      "depth": "9 - 10",
-      "time_in": "2025-11-19 13:46:02",
-      "moisture_sheet": "Moisture|9",
-      "moisture_column": "E"
     },
     {
       "can_number": "3508",
@@ -1045,5 +802,5 @@
       "moisture_column": "F"
     }
   ],
-  "last_updated": "2025-11-19 15:43:36"
+  "last_updated": "2025-11-21 06:16:16"
 }

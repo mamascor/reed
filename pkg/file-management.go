@@ -1633,7 +1633,7 @@ func WriteDryWeightToMoistureSheet(can OvenCanData, dryWeight string) error {
 	moistureContent := 0.0
 	if dryWtOfSoil > 0 {
 		moistureContent = (wtOfWater / dryWtOfSoil) * 100 // Moisture Content
-		moistureContent = math.Round(moistureContent)      // Round to nearest whole number
+		moistureContent = math.Round(moistureContent * 10) / 10      // Round to nearest tenth decimal point
 	}
 
 	// Write all values to the moisture sheet
